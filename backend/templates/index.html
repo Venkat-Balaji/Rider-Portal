@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Quick health checks</h2>
+
+  <section>
+    <h3>Health check</h3>
+    <p class="muted">Click to call the simple endpoints and display results.</p>
+    <div class="row" style="margin-bottom:12px">
+      <button id="btn-health">Call /api/schema/</button>
+      <button class="secondary" id="btn-ping">Call /api/v1/qr/invalid-token (expect 404)</button>
+    </div>
+    <pre id="health-out">Result will appear here...</pre>
+  </section>
+
+  <hr/>
+
+  <section>
+    <h3>How to use</h3>
+    <ol>
+      <li>Open <b>/api/docs/</b> to see the OpenAPI UI.</li>
+      <li>Use <b>QR Public Check</b> page to test the QR endpoint without auth.</li>
+      <li>Use <b>Auth API Test</b> to paste a Supabase JWT and call <code>/api/v1/users/me</code>.</li>
+    </ol>
+  </section>
+
+  <script>
+    const out = id => document.getElementById(id);
+    document.getElementById('btn-health').addEventListener('click', async () => {
+      out('health-out').textContent = 'Loading...';
+      try {
+        const r = await fetch('/api/schema/');
+        const txt = await r.text();
+        out('health-out').textContent = `Status: ${r.status}\n\n${txt.slice(0,2000)}`;
+      } catch(e) { out('health-out').textContent = 'Error: ' + e.toString(); }
+    });
+
+    document.getElementById('btn-ping').addEventListener('click', async () => {
+      out('health-out').textContent = 'Loading...';
+      try {
+        const r = await fetch('/api/v1/qr/invalid-token/');
+        const json = await r.json().catch(()=>null);
+        out('health-out').textContent = `Status: ${r.status}\n\n${json ? JSON.stringify(json, null, 2) : 'No JSON'}`;
+      } catch(e) { out('health-out').textContent = 'Error: ' + e.toString(); }
+    });
+  </script>
+{% endblock %}

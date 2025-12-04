@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Authenticated API test: /api/v1/users/me</h2>
+  <p class="muted">Paste a Supabase JWT (learned from the frontend) then click <b>Call API</b>.</p>
+
+  <label>Bearer token</label>
+  <textarea id="token" rows="3" placeholder="Paste token here"></textarea>
+  <div style="margin-top:8px"><button id="btn-call">Call /api/v1/users/me</button></div>
+
+  <h4>Response</h4>
+  <pre id="resp">No request yet.</pre>
+
+  <script>
+    document.getElementById('btn-call').addEventListener('click', async () => {
+      const token = document.getElementById('token').value.trim();
+      const respEl = document.getElementById('resp');
+      if (!token) { respEl.textContent = 'Paste a Bearer token first'; return; }
+      respEl.textContent = 'Calling...';
+      try {
+        const r = await fetch('/api/v1/users/me/', { headers: { 'Authorization': 'Bearer ' + token }});
+        const json = await r.json().catch(()=>null);
+        respEl.textContent = `Status: ${r.status}\n\n${json ? JSON.stringify(json, null, 2) : 'No JSON'}`;
+      } catch(e) { respEl.textContent = 'Error: ' + e.toString(); }
+    });
+  </script>
+{% endblock %}

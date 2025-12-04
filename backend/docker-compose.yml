@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: bash -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+  # Optional Postgres for production/local:
+  db:
+    image: postgres:15
+    env_file: .env
+    environment:
+      POSTGRES_DB: rider
+      POSTGRES_USER: rider
+      POSTGRES_PASSWORD: rider
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+volumes:
+  db-data:

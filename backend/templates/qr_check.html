@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>QR public endpoint check</h2>
+  <p class="muted">Enter a QR token and fetch the public emergency payload at <code>/api/v1/qr/&lt;token&gt;/</code></p>
+
+  <label>QR token</label>
+  <input id="token" type="text" placeholder="Enter token (eg: abc123)"/>
+  <div style="margin-top:8px">
+    <button id="btn-fetch">Fetch QR</button>
+    <button id="btn-scan" class="secondary">Record scan (POST)</button>
+  </div>
+
+  <h4>Result</h4>
+  <pre id="result">No request yet.</pre>
+
+  <script>
+    const result = document.getElementById('result');
+    const tokenInput = document.getElementById('token');
+
+    document.getElementById('btn-fetch').addEventListener('click', async () => {
+      const t = tokenInput.value.trim();
+      if (!t) { result.textContent = 'Please enter a token'; return; }
+      result.textContent = 'Loading...';
+      try {
+        const r = await fetch(`/api/v1/qr/${encodeURIComponent(t)}/`);
+        const json = await r.json().catch(()=>null);
+        result.textContent = `Status: ${r.status}\n\n${json ? JSON.stringify(json, null, 2) : 'No JSON body'}`;
+      } catch (e) { result.textContent = 'Error: ' + e.toString(); }
+    });
+
+    document.getElementById('btn-scan').addEventListener('click', async () => {
+      const t = tokenInput.value.trim();
+      if (!t) { result.textContent = 'Please enter a token'; return; }
+      result.textContent = 'Recording scan...';
+      try {
+        const payload = { location: { lat: null, lon: null }, user_agent: navigator.userAgent };
+        const r = await fetch(`/api/v1/qr/${encodeURIComponent(t)}/scan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await r.json().catch(()=>null);
+        result.textContent = `Status: ${r.status}\n\n${json ? JSON.stringify(json, null, 2) : 'No JSON'}`;
+      } catch (e) { result.textContent = 'Error: ' + e.toString(); }
+    });
+  </script>
+{% endblock %}
