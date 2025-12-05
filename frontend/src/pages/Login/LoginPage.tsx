@@ -1,17 +1,8 @@
 // src/pages/Login/LoginPage.tsx
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { supabase } from '@/auth/supabaseClient'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-
-/**
- * Login / SignUp combined page
- * - Full viewport centered split-screen
- * - Sliding overlay covers one whole panel (left or right)
- * - Mobile stacked layout
- * - After successful signin/signup we push a post-login history entry
- *   and add a popstate listener so "Back" returns to /login if user is signed-in.
- */
 
 export default function LoginPage(): JSX.Element {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -19,37 +10,21 @@ export default function LoginPage(): JSX.Element {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const navigate = useNavigate()
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((s) => ({ ...s, [e.target.name]: e.target.value }))
-
-  // helper to detect signed-in state (exists token)
-  const isSignedIn = useCallback(() => {
-    const token = localStorage.getItem('riders:token') || ''
-    return Boolean(token)
-  }, [])
-
-  // Handle browser back: if user is signed in and user presses back -> navigate to /login
   useEffect(() => {
-    const onPop = (ev: PopStateEvent) => {
-      // If user is signed in, send them back to the login page when they hit Back
-      if (isSignedIn()) {
-        navigate('/login', { replace: true })
+    const ensureRedirectIfAuthed = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const token = (data?.session as any)?.access_token || localStorage.getItem('riders:token')
+        if (token) navigate('/', { replace: true })
+      } catch (e) {
+        // ignore — if check fails, allow login screen to show
       }
     }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [isSignedIn, navigate])
+    ensureRedirectIfAuthed()
+  }, [navigate])
 
-  // Called after successful login/signup to add an extra history entry
-  // so that pressing Back will reveal the login page (and our popstate handler will navigate)
-  const pushPostLoginHistory = () => {
-    try {
-      // push a marker state so there's an entry to go "back" to
-      window.history.pushState({ ridersPortal: 'post-login' }, '', window.location.pathname)
-    } catch {
-      /* ignore; history push might be blocked in some environments */
-    }
-  }
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((s) => ({ ...s, [e.target.name]: e.target.value }))
 
   const doSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,9 +38,8 @@ export default function LoginPage(): JSX.Element {
       const token = (data.session as any)?.access_token
       if (token) localStorage.setItem('riders:token', token)
       toast.success('Signed in')
-      // push a history marker so Back works as requested
-      pushPostLoginHistory()
-      navigate('/', { replace: false })
+      // navigate to app root and replace so Back won't return to login
+      navigate('/', { replace: true })
     } catch (err: any) {
       toast.error(err?.message || 'Sign in failed')
     } finally {
@@ -83,10 +57,8 @@ export default function LoginPage(): JSX.Element {
         options: { data: { full_name: form.name } }
       })
       if (error) throw error
-      toast.success('Sign up success — check your email if confirmation required')
-      // Optionally auto-login depending on your Supabase settings; push history then navigate
-      pushPostLoginHistory()
-      navigate('/', { replace: false })
+      toast.success('Sign up successful — check your email if confirmation required')
+      navigate('/', { replace: true })
     } catch (err: any) {
       toast.error(err?.message || 'Sign up failed')
     } finally {
@@ -94,15 +66,14 @@ export default function LoginPage(): JSX.Element {
     }
   }
 
-  // Toggle helper used by overlay CTA buttons
   const toggleTo = (val: boolean) => setIsSignUp(val)
 
   return (
     <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-6">
       <div className="relative w-full h-[90vh] max-w-7xl rounded-2xl shadow-2xl overflow-hidden bg-white">
-        {/* Desktop two-column grid */}
+        {/* Desktop two-column layout */}
         <div className="hidden md:grid md:grid-cols-2 h-full">
-          {/* Left: Sign in */}
+          {/* LEFT: Sign in */}
           <div className="flex items-center justify-center px-16">
             <div className="w-full max-w-lg">
               <h1 className="text-4xl font-extrabold mb-3">Sign in</h1>
@@ -151,7 +122,7 @@ export default function LoginPage(): JSX.Element {
             </div>
           </div>
 
-          {/* Right: Sign up */}
+          {/* RIGHT: Sign up */}
           <div className="flex items-center justify-center px-16">
             <div className="w-full max-w-lg">
               <h1 className="text-4xl font-extrabold mb-3">Create Account</h1>
@@ -206,11 +177,10 @@ export default function LoginPage(): JSX.Element {
             </div>
           </div>
 
-          {/* Sliding overlay: covers one entire panel at a time (w-1/2) */}
+          {/* Sliding overlay: covers one entire panel (w-1/2) */}
           <div
             className="absolute top-0 bottom-0 left-0 w-1/2 transition-transform duration-700 ease-in-out pointer-events-none"
             style={{
-              // When signing up => overlay moves right-to-left covering left panel. When signed-in view (isSignUp=false) move to right so it covers right panel.
               transform: isSignUp ? 'translateX(0%)' : 'translateX(100%)'
             }}
           >
@@ -218,8 +188,7 @@ export default function LoginPage(): JSX.Element {
               <div
                 className="h-full w-full flex items-center justify-center text-white px-8"
                 style={{
-                  background:
-                    'linear-gradient(135deg, #FF4B2B 0%, #FF416C 50%, #FF4B2B 100%)'
+                  background: 'linear-gradient(135deg, #FF4B2B 0%, #FF416C 50%, #FF4B2B 100%)'
                 }}
               >
                 {!isSignUp ? (
@@ -254,7 +223,7 @@ export default function LoginPage(): JSX.Element {
           </div>
         </div>
 
-        {/* Mobile stacked layout (md:hidden) */}
+        {/* Mobile stacked layout */}
         <div className="md:hidden h-full grid grid-rows-[1fr_auto]">
           <div className="px-8 py-10 overflow-auto">
             {!isSignUp ? (

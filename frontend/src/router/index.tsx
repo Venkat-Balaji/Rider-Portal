@@ -1,5 +1,6 @@
-import React from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { createBrowserRouter, RouterProvider, useNavigate } from 'react-router-dom'
+import { supabase } from '@/auth/supabaseClient'
 import LoginPage from '@/pages/Login/LoginPage'
 import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import ProfilePage from '@/pages/Profile/ProfilePage'
@@ -9,8 +10,25 @@ import NotificationsPage from '@/pages/Notifications/NotificationsPage'
 import AuditPage from '@/pages/Audit/AuditPage'
 import RootLayout from '@/components/Layout/RootLayout'
 
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate()
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const token = (data?.session as any)?.access_token || localStorage.getItem('riders:token')
+        if (token) navigate('/', { replace: true })
+      } catch (e) {
+        // ignore
+      }
+    }
+    check()
+  }, [navigate])
+  return <>{children}</>
+}
+
 const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <PublicRoute><LoginPage /></PublicRoute> },
   {
     path: '/',
     element: <RootLayout />,

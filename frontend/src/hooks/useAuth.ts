@@ -41,6 +41,28 @@ export function useAuth() {
       }
     })
 
-    return () => sub?.subscription?.unsubscribe?.()
+    // Auto-logout when the user closes the tab or browser window.
+    // Note: `beforeunload` cannot reliably distinguish between refresh and close.
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      try {
+        // Clear local token immediately so reopened tabs won't find it
+        localStorage.removeItem('riders:token')
+        // Attempt to sign out from Supabase. This is async and may not finish
+        // before unload; it's best-effort to invalidate the server session.
+        supabase.auth.signOut().catch(() => {
+          /* ignore errors */
+        })
+      } catch (err) {
+        // ignore
+      }
+      // no need to call preventDefault — we don't want to block unload
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      sub?.subscription?.unsubscribe?.()
+    }
   }, [])
 }
