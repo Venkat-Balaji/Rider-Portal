@@ -16,3 +16,5 @@ pytest>=7.2
 pytest-django>=4.5
 factory-boy>=3.2
 drf-spectacular>=0.28   # OpenAPI / schema generation
+qrcode[pil]>=7.3
+Pillow>=10.0

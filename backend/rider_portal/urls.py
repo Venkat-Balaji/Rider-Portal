@@ -11,6 +11,7 @@ urlpatterns = [
     path('dev/qr/', TemplateView.as_view(template_name='qr_check.html'), name='dev-qr'),
     path('dev/api-test/', TemplateView.as_view(template_name='api_test.html'), name='dev-api-test'),
     path('api/v1/', include([
+        path('notifications/', include('notifications.urls')),
         path('users/', include('users.urls')),
         path('qr/', include('qr.urls')),
         path('documents/', include('documents.urls')),
