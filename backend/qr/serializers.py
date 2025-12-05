@@ -1,5 +1,6 @@
+# qr/serializers.py
 from rest_framework import serializers
-from .models import QRCode, QRScan
+from .models import QRCode
 
 class QRCodeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,20 +12,20 @@ class PublicQRSerializer(serializers.Serializer):
     meta = serializers.SerializerMethodField()
 
     def get_user(self, obj):
-        # Build public-safe user payload directly from obj.user to avoid circular imports
         user = obj.user
         return {
             'id': str(user.id),
             'full_name': user.full_name,
             'blood_group': user.blood_group,
-            'age': None,  # compute if you want
             'medical_conditions': user.medical_conditions or [],
             'allergies': user.allergies or [],
             'personal_doctor': {
                 'name': user.personal_doctor_name,
                 'phone': user.personal_doctor_phone
             },
-            'emergency_contacts': user.emergency_contact or [],
+            'emergency_contacts': [
+                {'name': c.name, 'phone': c.phone, 'relation': c.relation} for c in getattr(user, 'emergency_contacts', []).all()
+            ] if hasattr(user, 'emergency_contacts') else [],
             'insurance': {
                 'provider': user.insurance_provider,
                 'policy': user.insurance_policy_number
